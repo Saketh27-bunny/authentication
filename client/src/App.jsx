@@ -6,7 +6,7 @@ function App() {
 
   return (
     <div>
-      learn autherication
+      learn authentication
     </div>
     
   )
