@@ -47,6 +47,24 @@ catch(error){
   console.log("register error",error);
 }
 })
+app.post('/api/login',async(req,res)=>{
+  try{
+    const {email,password}=req.body;
+    if(!email || !password){
+      return res.status(400).json({message:"All fields are required"})
+    }
+    const existingUser=await User.findOne({email,password})
+    if(existingUser){
+      return res.status(200).json({message:"Login successfull"})
+    }
+    return res.status(401).json({
+      message:"Login failed",
+    })
+  }catch(e){
+    console.log("Login error",e);
+
+  }
+})
 
 // Start Server
 
