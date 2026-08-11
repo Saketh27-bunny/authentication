@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import User from './models/User.js'
 dotenv.config();
 
 const app = express();
@@ -24,7 +25,28 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// Sample Login Endpoint
+// register api
+app.post('/api/register',async(req,res)=>{
+  try{
+    const { fullName,email,password}=req.body;
+    if(!fullName || !email || !password){
+      return res.status(400).json({message:"All fields are required"})
+    }
+    const existingUser=await User.findOne({email});
+    if(existingUser){
+      return res.status(400).json({message:"User already exist"})
+    }
+    const newUser= await User.create({fullName,email,password})
+    
+    return res.status(201).json({
+      message:"Registration completed",
+      user:{id:newUser._id, fullName:newUser.fullName,email:newUser.email,password:newUser.password},
+    });
+  }
+catch(error){
+  console.log("register error",error);
+}
+})
 
 // Start Server
 

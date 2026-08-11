@@ -7,6 +7,9 @@ function register() {
     password: '',
     confirmPassword: '',
   });
+  const [errorMessage,setErrorMessage] =useState('');
+  const [SuccessMessage,setSuccessMessage] =useState('');
+  const [isLoading,setIsLoading]=useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -16,15 +19,48 @@ function register() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
+    setErrorMessage('');
+    setSuccessMessage('');
+    
+    if(formData.password!=formData.confirmPassword){
+      setErrorMessage('Passwords does not match');
       return;
     }
+    setIsLoading(true);
+    try{
+      const response = await fetch('http://localhost:5000/api/register',{
+        method : 'POST',
+        headers:{
+          'Content-Type':'application/json',
+        },
+        body: JSON.stringify({
+          fullName:formData.fullName,
+          email:formData.email,
+          password:formData.password,
+        }),
+      });
 
-    console.log('Registering user:', formData);
+      const data=await response.json();
+      if(!response.ok){
+        throw new Error(data.message|| "something went wrong")
+      }
+      setSuccessMessage(data.message || 'Account created successfully!')
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+      });
+
+    }
+    catch(err){
+      setErrorMessage(err.message)
+    }finally{
+      setIsLoading(false);
+    }
+
   };
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100 py-5">
