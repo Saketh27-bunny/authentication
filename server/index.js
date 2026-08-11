@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import User from './models/User.js'
+import session from 'express-session'
+import MongoStore from 'connect-mongo'
 dotenv.config();
 
 const app = express();
@@ -10,6 +12,19 @@ const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors()); 
+app.use(session({
+  secret:process.env.SESSION_SECRET,
+  resave:false,
+  saveUninitialized:false,
+  store: MongoStore.create({
+    mongoUrl:process.env.MONGO_URL,
+  }),
+  cookie:{
+    maxAge: 1000*60*60*24,
+    httpOnly:true,
+    secure:false,
+  }
+}))
 // Enables cross-origin requests from React
 app.use(express.json()); 
 
@@ -50,23 +65,37 @@ catch(error){
 app.post('/api/login',async(req,res)=>{
   try{
     const {email,password}=req.body;
-    if(!email || !password){
-      return res.status(400).json({message:"All fields are required"})
+    const user=await User.findOne({email,password})
+    if(!user){
+      return res.status(400).json({message:"Invalid email or password"})
     }
-    const existingUser=await User.findOne({email,password})
-    if(existingUser){
-      return res.status(200).json({message:"Login successfull"})
-    }
-    return res.status(401).json({
-      message:"Login failed",
-    })
+    req.session.userId=user._id;
+    req.session.user={ id:user.id,fullName:user.fullName,email: user.email};
+    return res.status(200).json({
+      message:"Login failed", user:req.session.user
+    });
   }catch(e){
     console.log("Login error",e);
-
   }
 })
 
+app.get('/api/check-session',(req,res)=>{
+  if(req.session && req.session.user){
+    return res.status(200).json({ isAuthenticated: true, user: req.session.user });
+  }
+  return res.status(401).json({ isAuthenticated: false, message: "Not authenticated" });
+})
+
 // Start Server
+app.post('/api/logout',(req,res)=>{
+  req.session.destroy((err)=>{
+    if(err){
+      return res.status(500).json({message:"Could not log out"})
+    }
+    res.clearCookie('connect.sid');
+    return res.status(200).json({message:"Logged out successfull"})
+  });
+})
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
